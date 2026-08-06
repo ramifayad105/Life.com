@@ -353,7 +353,7 @@
       }
     }
 
-    // Location-based provider search (uses server-side IP detection)
+    // Location-based provider search (uses client-side IP detection)
     (function() {
       const statusEl = document.getElementById('location-status');
       const nearbyEl = document.getElementById('nearby-providers');
@@ -363,33 +363,49 @@
 
       if (!statusEl) return; // Not on providers tab
 
-      // Call API - server detects location from IP automatically
-      fetch('/api/nearby-providers')
+      // Detect location from client IP using free API
+      fetch('https://ip-api.com/json/?fields=city,regionName,region')
         .then(r => r.json())
-        .then(result => {
-          if (result.providers && result.providers.length > 0) {
-            const loc = result.city && result.state ? `${result.city}, ${result.state}` : 'your area';
-            statusEl.innerHTML = `<p>📍 Showing providers near <strong>${loc}</strong></p>`;
-            let html = '';
-            result.providers.forEach(p => {
-              html += `<li class="provider-item">
-                <p class="provider-name">${p.name}</p>
-                <div class="provider-info">
-                  ${p.phone ? `<p><strong>Phone:</strong> ${p.phone}</p>` : ''}
-                  ${p.address ? `<p><strong>Address:</strong> ${p.address}</p>` : ''}
-                </div>
-                <div class="provider-specializations">
-                  ${p.specializations.map(s => `<span class="provider-tag">${s}</span>`).join('')}
-                </div>
-              </li>`;
-            });
-            listEl.innerHTML = html;
-            nearbyEl.style.display = 'block';
-          } else {
-            showFallback('Could not find providers in your area.');
+        .then(ipData => {
+          const city = ipData.city || '';
+          const state = ipData.region || '';  // 2-letter state code
+          const stateName = ipData.regionName || state;
+
+          if (!city || !state) {
+            showFallback('Could not determine your location.');
+            return;
           }
+
+          statusEl.innerHTML = `<p>📍 Finding providers near <strong>${city}, ${stateName}</strong>...</p>`;
+
+          // Call our backend with the detected city/state
+          fetch(`/api/nearby-providers?city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}`)
+            .then(r => r.json())
+            .then(result => {
+              if (result.providers && result.providers.length > 0) {
+                statusEl.innerHTML = `<p>📍 Showing providers near <strong>${city}, ${stateName}</strong></p>`;
+                let html = '';
+                result.providers.forEach(p => {
+                  html += `<li class="provider-item">
+                    <p class="provider-name">${p.name}</p>
+                    <div class="provider-info">
+                      ${p.phone ? `<p><strong>Phone:</strong> ${p.phone}</p>` : ''}
+                      ${p.address ? `<p><strong>Address:</strong> ${p.address}</p>` : ''}
+                    </div>
+                    <div class="provider-specializations">
+                      ${p.specializations.map(s => `<span class="provider-tag">${s}</span>`).join('')}
+                    </div>
+                  </li>`;
+                });
+                listEl.innerHTML = html;
+                nearbyEl.style.display = 'block';
+              } else {
+                showFallback(`No providers found in ${city}, ${stateName}.`);
+              }
+            })
+            .catch(() => showFallback('Could not search for providers.'));
         })
-        .catch(() => showFallback('Could not search for providers.'));
+        .catch(() => showFallback('Could not determine your location.'));
 
       function showFallback(msg) {
         statusEl.style.display = 'none';
