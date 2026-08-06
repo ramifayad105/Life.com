@@ -363,13 +363,13 @@
 
       if (!statusEl) return; // Not on providers tab
 
-      // Detect location from client IP using free API
-      fetch('https://ip-api.com/json/?fields=city,regionName,region')
+      // Detect location from client IP using free HTTPS API
+      fetch('https://ipapi.co/json/')
         .then(r => r.json())
         .then(ipData => {
           const city = ipData.city || '';
-          const state = ipData.region || '';  // 2-letter state code
-          const stateName = ipData.regionName || state;
+          const state = ipData.region_code || '';
+          const stateName = ipData.region || state;
 
           if (!city || !state) {
             showFallback('Could not determine your location.');
