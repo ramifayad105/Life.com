@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from datetime import datetime
 import json
 import os
+import requests
 
 app = Flask(__name__, template_folder='Templates', static_folder='Static')
 app.secret_key = 'your-secret-key-change-in-production'
@@ -603,6 +604,79 @@ def toggle_theme():
     session.modified = True
     
     return redirect(url_for('index', tab='settings'))
+
+
+@app.route('/api/nearby-providers')
+def nearby_providers():
+    """Search for healthcare providers near a location using NPI Registry API"""
+    city = request.args.get('city', '')
+    state = request.args.get('state', '')
+    
+    if not city or not state:
+        return jsonify({'providers': [], 'error': 'City and state are required'})
+    
+    try:
+        # Query the free NPI Registry API
+        params = {
+            'version': '2.1',
+            'city': city,
+            'state': state,
+            'taxonomy_description': 'hospital',
+            'limit': 10,
+        }
+        resp = requests.get('https://npiregistry.cms.hhs.gov/api/', params=params, timeout=10)
+        data = resp.json()
+        
+        results = []
+        if data.get('result_count', 0) > 0:
+            for result in data.get('results', []):
+                # Get the practice address
+                addresses = result.get('addresses', [])
+                practice_addr = None
+                for addr in addresses:
+                    if addr.get('address_purpose') == 'LOCATION':
+                        practice_addr = addr
+                        break
+                if not practice_addr and addresses:
+                    practice_addr = addresses[0]
+                
+                # Build provider info
+                name = ''
+                if result.get('basic', {}).get('organization_name'):
+                    name = result['basic']['organization_name']
+                else:
+                    first = result.get('basic', {}).get('first_name', '')
+                    last = result.get('basic', {}).get('last_name', '')
+                    name = f"{first} {last}".strip()
+                
+                # Get taxonomies (specializations)
+                taxonomies = result.get('taxonomies', [])
+                specs = [t.get('desc', '') for t in taxonomies if t.get('desc')]
+                
+                address_str = ''
+                phone = ''
+                if practice_addr:
+                    addr_parts = [
+                        practice_addr.get('address_1', ''),
+                        practice_addr.get('city', ''),
+                        practice_addr.get('state', ''),
+                        practice_addr.get('postal_code', '')[:5],
+                    ]
+                    address_str = ', '.join(p for p in addr_parts if p)
+                    phone = practice_addr.get('telephone_number', '')
+                
+                if name:
+                    results.append({
+                        'name': name,
+                        'address': address_str,
+                        'phone': phone,
+                        'specializations': specs[:4],
+                    })
+        
+        return jsonify({'providers': results})
+    
+    except Exception as e:
+        return jsonify({'providers': [], 'error': str(e)})
 
 
 if __name__ == '__main__':
