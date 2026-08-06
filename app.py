@@ -612,8 +612,27 @@ def nearby_providers():
     city = request.args.get('city', '')
     state = request.args.get('state', '')
     
+    # If no city/state provided, detect from IP
     if not city or not state:
-        return jsonify({'providers': [], 'error': 'City and state are required'})
+        try:
+            # Get user's IP-based location using free ip-api.com
+            user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+            if user_ip and ',' in user_ip:
+                user_ip = user_ip.split(',')[0].strip()
+            
+            # Use ip-api.com (free, no key needed, 45 req/min)
+            ip_url = f'http://ip-api.com/json/{user_ip}?fields=city,regionName,region'
+            ip_resp = requests.get(ip_url, timeout=5)
+            ip_data = ip_resp.json()
+            
+            if ip_data.get('city'):
+                city = ip_data['city']
+                state = ip_data.get('region', '')  # 2-letter state code
+        except:
+            pass
+    
+    if not city or not state:
+        return jsonify({'providers': [], 'city': '', 'state': '', 'error': 'Could not determine location'})
     
     try:
         # Query the free NPI Registry API
@@ -673,10 +692,10 @@ def nearby_providers():
                         'specializations': specs[:4],
                     })
         
-        return jsonify({'providers': results})
+        return jsonify({'providers': results, 'city': city, 'state': state})
     
     except Exception as e:
-        return jsonify({'providers': [], 'error': str(e)})
+        return jsonify({'providers': [], 'city': city, 'state': state, 'error': str(e)})
 
 
 if __name__ == '__main__':
