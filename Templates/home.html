@@ -149,67 +149,75 @@
         {% if selected_screening and filtered_providers %}
         <div class="recommendations">
           <p class="recommendations-title">Providers offering "{{ selected_screening }}":</p>
-          <ul class="provider-list" style="margin-top: 1rem;">
-            {% for provider in filtered_providers %}
-            <li class="provider-item">
-              <p class="provider-name">{{ provider.name }}</p>
-              <div class="provider-info">
-                <p><strong>Phone:</strong> {{ provider.phone }}</p>
-                <p><strong>Address:</strong> {{ provider.address }}</p>
-                <p><strong>Hours:</strong> {{ provider.hours }}</p>
-              </div>
-              <div class="provider-specializations">
-                {% for spec in provider.specializations %}
-                <span class="provider-tag">{{ spec }}</span>
-                {% endfor %}
-              </div>
-              <div class="provider-details">
-                <ul>
-                  {% for detail in provider.details %}
-                  <li>{{ detail }}</li>
+          <div id="book-providers-location" style="margin-top: 1rem;">
+            <p>📍 Finding providers near you...</p>
+          </div>
+          <ul class="provider-list" id="book-providers-list" style="margin-top: 1rem; display: none;"></ul>
+          
+          <!-- Fallback hardcoded providers -->
+          <div id="book-fallback-providers" style="display: none;">
+            <ul class="provider-list" style="margin-top: 1rem;">
+              {% for provider in filtered_providers %}
+              <li class="provider-item">
+                <p class="provider-name">{{ provider.name }}</p>
+                <div class="provider-info">
+                  <p><strong>Phone:</strong> {{ provider.phone }}</p>
+                  <p><strong>Address:</strong> {{ provider.address }}</p>
+                  <p><strong>Hours:</strong> {{ provider.hours }}</p>
+                </div>
+                <div class="provider-specializations">
+                  {% for spec in provider.specializations %}
+                  <span class="provider-tag">{{ spec }}</span>
                   {% endfor %}
-                </ul>
-              </div>
-              
-              <!-- Booking Form -->
-              <div class="booking-section">
-                <button class="btn-book" type="button" onclick="toggleBooking('booking-{{ loop.index }}')">Book Appointment</button>
-                <div id="booking-{{ loop.index }}" class="booking-form" style="display: none;">
-                  <form method="POST" action="/book-appointment">
-                    <input type="hidden" name="provider_name" value="{{ provider.name }}">
-                    <input type="hidden" name="purpose" value="{{ selected_screening }}">
-                    
-                    <div class="form-row">
-                      <div class="form-group">
-                        <label for="date-{{ loop.index }}">Select Date:</label>
-                        <input type="date" id="date-{{ loop.index }}" name="appointment_date" required min="{{ today }}">
+                </div>
+                <div class="provider-details">
+                  <ul>
+                    {% for detail in provider.details %}
+                    <li>{{ detail }}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+                
+                <!-- Booking Form -->
+                <div class="booking-section">
+                  <button class="btn-book" type="button" onclick="toggleBooking('booking-{{ loop.index }}')">Book Appointment</button>
+                  <div id="booking-{{ loop.index }}" class="booking-form" style="display: none;">
+                    <form method="POST" action="/book-appointment">
+                      <input type="hidden" name="provider_name" value="{{ provider.name }}">
+                      <input type="hidden" name="purpose" value="{{ selected_screening }}">
+                      
+                      <div class="form-row">
+                        <div class="form-group">
+                          <label for="date-{{ loop.index }}">Select Date:</label>
+                          <input type="date" id="date-{{ loop.index }}" name="appointment_date" required min="{{ today }}">
+                        </div>
+                        
+                        <div class="form-group">
+                          <label for="time-{{ loop.index }}">Select Time:</label>
+                          <select id="time-{{ loop.index }}" name="appointment_time" class="age-select" required>
+                            <option value="">-- Choose time --</option>
+                            <option value="8:00 AM">8:00 AM</option>
+                            <option value="9:00 AM">9:00 AM</option>
+                            <option value="10:00 AM">10:00 AM</option>
+                            <option value="11:00 AM">11:00 AM</option>
+                            <option value="12:00 PM">12:00 PM</option>
+                            <option value="1:00 PM">1:00 PM</option>
+                            <option value="2:00 PM">2:00 PM</option>
+                            <option value="3:00 PM">3:00 PM</option>
+                            <option value="4:00 PM">4:00 PM</option>
+                            <option value="5:00 PM">5:00 PM</option>
+                          </select>
+                        </div>
                       </div>
                       
-                      <div class="form-group">
-                        <label for="time-{{ loop.index }}">Select Time:</label>
-                        <select id="time-{{ loop.index }}" name="appointment_time" class="age-select" required>
-                          <option value="">-- Choose time --</option>
-                          <option value="8:00 AM">8:00 AM</option>
-                          <option value="9:00 AM">9:00 AM</option>
-                          <option value="10:00 AM">10:00 AM</option>
-                          <option value="11:00 AM">11:00 AM</option>
-                          <option value="12:00 PM">12:00 PM</option>
-                          <option value="1:00 PM">1:00 PM</option>
-                          <option value="2:00 PM">2:00 PM</option>
-                          <option value="3:00 PM">3:00 PM</option>
-                          <option value="4:00 PM">4:00 PM</option>
-                          <option value="5:00 PM">5:00 PM</option>
-                        </select>
-                      </div>
-                    </div>
-                    
-                    <button type="submit" class="btn-submit">Confirm Booking</button>
-                  </form>
+                      <button type="submit" class="btn-submit">Confirm Booking</button>
+                    </form>
+                  </div>
                 </div>
-              </div>
-            </li>
-            {% endfor %}
-          </ul>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
         </div>
         {% elif selected_screening and not filtered_providers %}
         <div class="recommendations">
@@ -269,23 +277,38 @@
       {% if active_tab == 'pharmacy' %}
       <section class="section">
         <h2 class="section-header">Pharmacies Near You</h2>
-        <ul class="provider-list">
-          {% for pharmacy in pharmacies %}
-          <li class="provider-item">
-            <p class="provider-name">{{ pharmacy.name }}</p>
-            <div class="provider-info">
-              <p><strong>Phone:</strong> {{ pharmacy.phone }}</p>
-              <p><strong>Address:</strong> {{ pharmacy.address }}</p>
-              <p><strong>Hours:</strong> {{ pharmacy.hours }}</p>
-            </div>
-            <div class="provider-specializations">
-              {% for service in pharmacy.services %}
-              <span class="provider-tag">{{ service }}</span>
-              {% endfor %}
-            </div>
-          </li>
-          {% endfor %}
-        </ul>
+        
+        <div id="pharmacy-status" class="recommendations">
+          <p>📍 Finding pharmacies in your area...</p>
+        </div>
+        
+        <div id="nearby-pharmacies" style="display: none;">
+          <ul class="provider-list" id="pharmacies-list"></ul>
+        </div>
+        
+        <div id="pharmacy-error" style="display: none;"></div>
+        
+        <!-- Fallback: show hardcoded pharmacies -->
+        <div id="fallback-pharmacies" style="display: none;">
+          <h3 style="margin-top: 1.5rem; color: var(--text-primary);">Greenville, NC Pharmacies</h3>
+          <ul class="provider-list">
+            {% for pharmacy in pharmacies %}
+            <li class="provider-item">
+              <p class="provider-name">{{ pharmacy.name }}</p>
+              <div class="provider-info">
+                <p><strong>Phone:</strong> {{ pharmacy.phone }}</p>
+                <p><strong>Address:</strong> {{ pharmacy.address }}</p>
+                <p><strong>Hours:</strong> {{ pharmacy.hours }}</p>
+              </div>
+              <div class="provider-specializations">
+                {% for service in pharmacy.services %}
+                <span class="provider-tag">{{ service }}</span>
+                {% endfor %}
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
       </section>
       {% endif %}
 
@@ -411,6 +434,155 @@
         statusEl.style.display = 'none';
         errorEl.innerHTML = `<p class="recommendations-title" style="color: #c41e3a;">${msg} Showing default providers below.</p>`;
         errorEl.style.display = 'block';
+        fallbackEl.style.display = 'block';
+      }
+    })();
+
+    // Location-based pharmacy search
+    (function() {
+      const statusEl = document.getElementById('pharmacy-status');
+      const nearbyEl = document.getElementById('nearby-pharmacies');
+      const errorEl = document.getElementById('pharmacy-error');
+      const fallbackEl = document.getElementById('fallback-pharmacies');
+      const listEl = document.getElementById('pharmacies-list');
+
+      if (!statusEl) return; // Not on pharmacy tab
+
+      fetch('https://ipapi.co/json/')
+        .then(r => r.json())
+        .then(ipData => {
+          const city = ipData.city || '';
+          const state = ipData.region_code || '';
+          const stateName = ipData.region || state;
+
+          if (!city || !state) {
+            showFallback('Could not determine your location.');
+            return;
+          }
+
+          statusEl.innerHTML = `<p>📍 Finding pharmacies near <strong>${city}, ${stateName}</strong>...</p>`;
+
+          fetch(`/api/nearby-pharmacies?city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}`)
+            .then(r => r.json())
+            .then(result => {
+              if (result.pharmacies && result.pharmacies.length > 0) {
+                statusEl.innerHTML = `<p>📍 Showing pharmacies near <strong>${city}, ${stateName}</strong></p>`;
+                let html = '';
+                result.pharmacies.forEach(p => {
+                  html += `<li class="provider-item">
+                    <p class="provider-name">${p.name}</p>
+                    <div class="provider-info">
+                      ${p.phone ? `<p><strong>Phone:</strong> ${p.phone}</p>` : ''}
+                      ${p.address ? `<p><strong>Address:</strong> ${p.address}</p>` : ''}
+                    </div>
+                    <div class="provider-specializations">
+                      ${p.specializations.map(s => `<span class="provider-tag">${s}</span>`).join('')}
+                    </div>
+                  </li>`;
+                });
+                listEl.innerHTML = html;
+                nearbyEl.style.display = 'block';
+              } else {
+                showFallback(`No pharmacies found in ${city}, ${stateName}.`);
+              }
+            })
+            .catch(() => showFallback('Could not search for pharmacies.'));
+        })
+        .catch(() => showFallback('Could not determine your location.'));
+
+      function showFallback(msg) {
+        statusEl.style.display = 'none';
+        errorEl.innerHTML = `<p class="recommendations-title" style="color: #c41e3a;">${msg} Showing default pharmacies below.</p>`;
+        errorEl.style.display = 'block';
+        fallbackEl.style.display = 'block';
+      }
+    })();
+
+    // Location-based providers for Book Appointment tab
+    (function() {
+      const statusEl = document.getElementById('book-providers-location');
+      const listEl = document.getElementById('book-providers-list');
+      const fallbackEl = document.getElementById('book-fallback-providers');
+
+      if (!statusEl) return; // Not on book tab with screening selected
+
+      fetch('https://ipapi.co/json/')
+        .then(r => r.json())
+        .then(ipData => {
+          const city = ipData.city || '';
+          const state = ipData.region_code || '';
+          const stateName = ipData.region || state;
+
+          if (!city || !state) {
+            showFallback();
+            return;
+          }
+
+          statusEl.innerHTML = `<p>📍 Finding providers near <strong>${city}, ${stateName}</strong>...</p>`;
+
+          fetch(`/api/nearby-providers?city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}`)
+            .then(r => r.json())
+            .then(result => {
+              if (result.providers && result.providers.length > 0) {
+                statusEl.innerHTML = `<p>📍 Providers near <strong>${city}, ${stateName}</strong></p>`;
+                let html = '';
+                const today = document.querySelector('input[type="date"]') ? document.querySelector('input[type="date"]').min : '';
+                result.providers.forEach((p, i) => {
+                  html += `<li class="provider-item">
+                    <p class="provider-name">${p.name}</p>
+                    <div class="provider-info">
+                      ${p.phone ? `<p><strong>Phone:</strong> ${p.phone}</p>` : ''}
+                      ${p.address ? `<p><strong>Address:</strong> ${p.address}</p>` : ''}
+                    </div>
+                    <div class="provider-specializations">
+                      ${p.specializations.map(s => `<span class="provider-tag">${s}</span>`).join('')}
+                    </div>
+                    <div class="booking-section">
+                      <button class="btn-book" type="button" onclick="toggleBooking('dyn-booking-${i}')">Book Appointment</button>
+                      <div id="dyn-booking-${i}" class="booking-form" style="display: none;">
+                        <form method="POST" action="/book-appointment">
+                          <input type="hidden" name="provider_name" value="${p.name}">
+                          <input type="hidden" name="purpose" value="${document.querySelector('select[name=screening]')?.value || ''}">
+                          <div class="form-row">
+                            <div class="form-group">
+                              <label>Select Date:</label>
+                              <input type="date" name="appointment_date" required min="${today}">
+                            </div>
+                            <div class="form-group">
+                              <label>Select Time:</label>
+                              <select name="appointment_time" class="age-select" required>
+                                <option value="">-- Choose time --</option>
+                                <option value="8:00 AM">8:00 AM</option>
+                                <option value="9:00 AM">9:00 AM</option>
+                                <option value="10:00 AM">10:00 AM</option>
+                                <option value="11:00 AM">11:00 AM</option>
+                                <option value="12:00 PM">12:00 PM</option>
+                                <option value="1:00 PM">1:00 PM</option>
+                                <option value="2:00 PM">2:00 PM</option>
+                                <option value="3:00 PM">3:00 PM</option>
+                                <option value="4:00 PM">4:00 PM</option>
+                                <option value="5:00 PM">5:00 PM</option>
+                              </select>
+                            </div>
+                          </div>
+                          <button type="submit" class="btn-submit">Confirm Booking</button>
+                        </form>
+                      </div>
+                    </div>
+                  </li>`;
+                });
+                listEl.innerHTML = html;
+                listEl.style.display = 'block';
+              } else {
+                showFallback();
+              }
+            })
+            .catch(() => showFallback());
+        })
+        .catch(() => showFallback());
+
+      function showFallback() {
+        statusEl.style.display = 'none';
         fallbackEl.style.display = 'block';
       }
     })();
